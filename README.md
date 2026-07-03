@@ -176,3 +176,151 @@ Execute `mtr 192.168.200.4` na placa 1.
 ## Passo 3
 
 Uma vez com o servidor de eco funcionando, edite o arquivo `placa3.py` e tente trocar a implementação do servidor de eco pela sua implementação de camada de aplicação da prática 1 (servidor de IRC).
+
+
+# Projeto integrado do grupo
+
+Esta pasta contém as implementações das práticas P1 a P4 integradas à
+topologia do seminário. O servidor de eco valida primeiro a pilha completa; o
+IRC é iniciado somente depois que o eco funcionar.
+
+## Arquivos usados nas placas
+
+Arquivos comuns às três placas:
+
+```text
+camadafisica.py
+tcputils.py
+iputils.py
+tcp.py
+ip.py
+slip.py
+```
+
+Programas específicos:
+
+- Placa 1: `placa1.py`
+- Placa 2: `placa2.py`
+- Placa 3, teste de eco: `placa3_eco.py`
+- Placa 3, serviço final: `placa3.py` e `servidor_irc.py`
+
+`placa3_eco.py` e `placa3.py` são alternativas. Nunca execute os dois ao mesmo
+tempo.
+
+## Criar o diretório e copiar os arquivos
+
+Em cada placa:
+
+```bash
+mkdir -p ~/grupo-redes
+```
+
+Em um computador Linux, dentro da pasta `redes-s1`, informe os endereços SSH e
+copie somente os arquivos necessários:
+
+```bash
+read -r -p "IP SSH da placa 1: " PLACA1_SSH
+read -r -p "IP SSH da placa 2: " PLACA2_SSH
+read -r -p "IP SSH da placa 3: " PLACA3_SSH
+
+COMUNS="camadafisica.py tcputils.py iputils.py tcp.py ip.py slip.py"
+scp $COMUNS placa1.py "alarm@$PLACA1_SSH:~/grupo-redes/"
+scp $COMUNS placa2.py "alarm@$PLACA2_SSH:~/grupo-redes/"
+scp $COMUNS placa3_eco.py placa3.py servidor_irc.py \
+    "alarm@$PLACA3_SSH:~/grupo-redes/"
+```
+
+O usuário e a senha padrão são `alarm`.
+
+## Cabeamento
+
+Desligue as placas antes de alterar os fios. Una primeiro os terras das três
+placas. Em cada enlace, ligue TX de uma placa ao RX da outra e RX ao TX:
+
+```text
+Placa 1 P0 ↔ Placa 2 P4
+Placa 2 P0 ↔ Placa 3 P0
+```
+
+Não conecte os pinos de alimentação.
+
+## Teste do servidor de eco
+
+Na placa 2:
+
+```bash
+cd ~/grupo-redes
+sudo python3 placa2.py
+```
+
+Na placa 3:
+
+```bash
+cd ~/grupo-redes
+sudo python3 placa3_eco.py
+```
+
+Na placa 1:
+
+```bash
+cd ~/grupo-redes
+sudo python3 placa1.py
+```
+
+Sem encerrar `placa1.py`, abra outros terminais com `tmux`. Em um deles, informe
+a PTY exibida e execute `slattach`:
+
+```bash
+read -r -p "PTY exibida por placa1.py: " PTY_SLIP
+sudo slattach -v -p slip "$PTY_SLIP"
+```
+
+Em outro terminal, execute os comandos impressos por `placa1.py`:
+
+```bash
+sudo ifconfig sl0 192.168.200.1 pointopoint 192.168.200.2
+sudo ip route add 192.168.200.0/24 via 192.168.200.2
+```
+
+Ainda na placa 1:
+
+```bash
+nc 192.168.200.4 7000
+```
+
+Tudo que for digitado deve voltar igual. Encerre o `nc` com `Ctrl+C`. Se a
+implementação IP inclui ICMP Time Exceeded, também execute:
+
+```bash
+mtr 192.168.200.4
+```
+
+## Teste do servidor IRC
+
+Na placa 3, encerre `placa3_eco.py` com `Ctrl+C` e inicie o serviço final:
+
+```bash
+sudo python3 placa3.py
+```
+
+Na placa 1:
+
+```bash
+nc -C 192.168.200.4 6667
+```
+
+Digite:
+
+```text
+PING teste
+NICK aluno
+JOIN #redes
+```
+
+As respostas devem incluir `PONG`, o código `001`, o código `422`, a mensagem
+`JOIN` e o fim da lista de nomes `366`. Para testar `PRIVMSG`, abra um segundo
+`nc`, registre outro apelido, entre em `#redes` e envie:
+
+```text
+PRIVMSG #redes :mensagem entre as placas
+```
