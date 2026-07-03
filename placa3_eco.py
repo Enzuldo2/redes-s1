@@ -18,7 +18,7 @@ def conexao_aceita(conexao):
     conexao.registrar_recebedor(dados_recebidos)
 
 
-def main():
+async def main():
     nossa_ponta = "192.168.200.4"
     outra_ponta = "192.168.200.3"
     porta_tcp = 7000
@@ -35,8 +35,8 @@ def main():
 
     servidor = Servidor(rede, porta_tcp)
     servidor.registrar_monitor_de_conexoes_aceitas(conexao_aceita)
-    asyncio.get_event_loop().run_forever()
+    await asyncio.Event().wait()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

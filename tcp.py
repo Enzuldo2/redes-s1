@@ -131,12 +131,12 @@ class Conexao:
 
         # 1. Trata FIN
         if (flags & FLAGS_FIN) == FLAGS_FIN:
-            if self.callback:
-                self.callback(self, b'')
             self.expected_seqno += 1
             self.ack_no = self.expected_seqno
+            if self.callback:
+                self.callback(self, b'')
             
-            header = make_header(dst_port, src_port, self.seq_no, self.ack_no, FLAGS_ACK)
+            header = make_header(dst_port, src_port, self.nextseqnum, self.ack_no, FLAGS_ACK)
             segmento = fix_checksum(header, dst_addr, src_addr)
             self.servidor.rede.enviar(segmento, src_addr)
             return
@@ -203,13 +203,13 @@ class Conexao:
         # 3. Processa Dados
         if len(payload) > 0:
             if seq_no == self.expected_seqno:
-                if self.callback:
-                    self.callback(self, payload)
-                
                 self.expected_seqno += len(payload)
                 self.ack_no = self.expected_seqno
+                
+                if self.callback:
+                    self.callback(self, payload)
             
-            header = make_header(dst_port, src_port, self.seq_no, self.ack_no, FLAGS_ACK)
+            header = make_header(dst_port, src_port, self.nextseqnum, self.ack_no, FLAGS_ACK)
             segmento = fix_checksum(header, dst_addr, src_addr)
             self.servidor.rede.enviar(segmento, src_addr)
 
